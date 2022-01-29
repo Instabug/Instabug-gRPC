@@ -21,11 +21,11 @@ Pod::Spec.new do |s|
     }
   s.author           = { "Instabug" => "contactus@instabug.com" }
   s.platform         = :ios, '10.0'
-  s.source           = { :git => "https://github.com/Instabug/ios.git", :tag => "#{s.version}" }
+  s.source           = { :git => "https://github.com/Instabug/Instabug-gRPC.git", :tag => "#{s.version}" }
 
   s.source_files = 'Instabug-grpc-swift/**/*.{h,m,swift}'
   s.requires_arc     = true
-  s.dependency 'Instabug' #, :podspec => 'https://ios-releases.instabug.com/custom/feature-supporting-grpc-base/Instabug.podspec'
+  s.dependency 'Instabug'
   s.dependency 'gRPC-Swift'
   s.swift_versions = '5.5'
 end
