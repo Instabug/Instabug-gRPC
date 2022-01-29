@@ -94,17 +94,4 @@ GRPCNetworkLog *networkLog;
                             serverErrorMessage:networkLog.serverErrorMessage];
 }
 
-- (void)finish {
-    [super finish];
-}
-
-- (void)cancel {
-    [super cancel];
-}
-
-- (void)didWriteData {
-    [super didWriteData];
-}
-
-
 @end
