@@ -82,6 +82,7 @@ GRPCNetworkLog *networkLog;
     if (networkLog.responseHeaders[@"content-type"] == nil) {
         [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
     }
+    networkLog.contentType = networkLog.responseHeaders[@"content-type"];
 
     [IBGNetworkLogger addGrpcNetworkLogWithUrl:networkLog.url
                                    requestBody:networkLog.requestBody
