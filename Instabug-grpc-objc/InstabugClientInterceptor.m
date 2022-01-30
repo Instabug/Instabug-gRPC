@@ -15,7 +15,7 @@
 @property NSInteger responseBodySize;
 @property NSInteger statusCode;
 @property NSDictionary<NSString *, NSString *> *requestHeaders;
-@property NSDictionary<NSString *, NSString *> *responseHeaders;
+@property NSMutableDictionary<NSString *, NSString *> *responseHeaders;
 @property NSString *contentType;
 @property NSString *errorDomain;
 @property NSInteger errorCode;
@@ -35,35 +35,36 @@
 GRPCNetworkLog *networkLog;
 
 - (void)startWithRequestOptions:(GRPCRequestOptions *)requestOptions callOptions:(GRPCCallOptions *)callOptions {
-    [super startWithRequestOptions:requestOptions callOptions:callOptions];
     networkLog = [[GRPCNetworkLog alloc] init];
     
     networkLog.url = [NSString stringWithFormat:@"grpc://%@/%@",[requestOptions host], [requestOptions path].pathComponents[1]];
     networkLog.gRPCMethod = [requestOptions path].pathComponents[2];
     networkLog.startTime = [[NSDate date] timeIntervalSince1970];
     networkLog.requestHeaders = callOptions.initialMetadata;
+    [super startWithRequestOptions:requestOptions callOptions:callOptions];
 }
 
 - (void)writeData:(id)data {
-    [super writeData:data];
     networkLog.requestBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     networkLog.requestSize = [data length];
+    [super writeData:data];
 }
 
 - (void)didReceiveData:(id)data {
-    [super didReceiveData:data];
     networkLog.responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     networkLog.responseBodySize = [data length];
+    [super didReceiveData:data];
 }
 
 - (void)didReceiveInitialMetadata:(NSDictionary *)initialMetadata {
-    [super didReceiveInitialMetadata:initialMetadata];
-    networkLog.responseHeaders = initialMetadata;
+    networkLog.responseHeaders = [NSMutableDictionary dictionary];
+    [networkLog.responseHeaders addEntriesFromDictionary:[initialMetadata copy]];
+
     networkLog.isServerSideError = YES;
+    [super didReceiveInitialMetadata:initialMetadata];
 }
 
 - (void)didCloseWithTrailingMetadata:(NSDictionary *)trailingMetadata error:(NSError *)error {
-    [super didCloseWithTrailingMetadata:trailingMetadata error:error];
     networkLog.duration = ([[NSDate date] timeIntervalSince1970] - networkLog.startTime) * 1000000;
     if (error == nil) {
         networkLog.statusCode = 0;
@@ -75,6 +76,11 @@ GRPCNetworkLog *networkLog;
             networkLog.errorCode = error.code;
             networkLog.errorDomain = error.localizedDescription;
         }
+    }
+    
+    [networkLog.responseHeaders addEntriesFromDictionary:[trailingMetadata copy]];
+    if (networkLog.responseHeaders[@"content-type"] == nil) {
+        [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
     }
 
     [IBGNetworkLogger addGrpcNetworkLogWithUrl:networkLog.url
@@ -92,6 +98,7 @@ GRPCNetworkLog *networkLog;
                                       duration:networkLog.duration
                                     gRPCMethod:networkLog.gRPCMethod
                             serverErrorMessage:networkLog.serverErrorMessage];
+    [super didCloseWithTrailingMetadata:trailingMetadata error:error];
 }
 
 @end
