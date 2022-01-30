@@ -67,10 +67,8 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
                 networkLog.responseBody = String(data: data, encoding: .utf8)
                 networkLog.responseBodySize = Int64(data.count)
             }
-            context.receive(.message(response))
-            
         case let .end(status, trailers):
-            if !trailers.isEmpty, !networkLog.responseHeaders.isEmpty {
+            if !trailers.isEmpty {
                 networkLog.responseCode = Int32(status.code.rawValue)
                 if status.code.rawValue != 0 {
                     networkLog.serverErrorMessage = status.description
@@ -98,6 +96,10 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
     }
 
     func addGrpcNetworkLog() {
+        if networkLog.responseHeaders["content-type"] == nil {
+            networkLog.responseHeaders["content-type"] = "application/grpc"
+        }
+        networkLog.contentType = networkLog.responseHeaders["content-type"];
         NetworkLogger.addGrpcNetworkLog(
             withUrl: networkLog.url,
             requestBody: networkLog.requestBody,
