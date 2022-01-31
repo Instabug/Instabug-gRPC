@@ -93,7 +93,7 @@ GRPCNetworkLog *networkLog;
                                 requestHeaders:networkLog.requestHeaders
                                responseHeaders:networkLog.responseHeaders
                                    contentType:networkLog.contentType
-                                     startTime:networkLog.startTime
+                                     startTime:(networkLog.startTime * 1000000)
                                    errorDomain:networkLog.errorDomain
                                      errorCode:(int)networkLog.errorCode
                                       duration:networkLog.duration

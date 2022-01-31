@@ -110,7 +110,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             requestHeaders: networkLog.requestHeaders,
             responseHeaders: networkLog.responseHeaders,
             contentType: networkLog.contentType,
-            startTime: Int64(networkLog.startTime ?? 0),
+            startTime: Int64((networkLog.startTime ?? 0) * 1000000),
             errorDomain: networkLog.errorDomain,
             errorCode: networkLog.errorCode ?? 0,
             duration: networkLog.duration ?? 0,
