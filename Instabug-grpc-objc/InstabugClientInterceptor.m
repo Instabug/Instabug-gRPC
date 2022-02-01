@@ -71,10 +71,10 @@ GRPCNetworkLog *networkLog;
     } else {
         if (networkLog.isServerSideError) {
             networkLog.statusCode = error.code;
-            networkLog.serverErrorMessage = error.localizedDescription;
+            networkLog.serverErrorMessage = error.description;
         } else {
             networkLog.errorCode = error.code;
-            networkLog.errorDomain = error.localizedDescription;
+            networkLog.errorDomain = error.description;
         }
     }
     
