@@ -14,7 +14,7 @@
 @property NSString *responseBody;
 @property NSInteger responseBodySize;
 @property NSInteger statusCode;
-@property NSDictionary<NSString *, NSString *> *requestHeaders;
+@property NSMutableDictionary<NSString *, NSString *> *requestHeaders;
 @property NSMutableDictionary<NSString *, NSString *> *responseHeaders;
 @property NSString *contentType;
 @property NSString *errorDomain;
@@ -40,7 +40,10 @@ GRPCNetworkLog *networkLog;
     networkLog.url = [NSString stringWithFormat:@"grpc://%@/%@",[requestOptions host], [requestOptions path].pathComponents[1]];
     networkLog.gRPCMethod = [requestOptions path].pathComponents[2];
     networkLog.startTime = [[NSDate date] timeIntervalSince1970];
-    networkLog.requestHeaders = callOptions.initialMetadata;
+    networkLog.requestHeaders = [[NSMutableDictionary alloc] initWithDictionary:[callOptions.initialMetadata copy]];
+    if (networkLog.requestHeaders[@"content-type"] == nil) {
+        [networkLog.requestHeaders setObject:@"application/grpc" forKey:@"content-type"];
+    }
     [super startWithRequestOptions:requestOptions callOptions:callOptions];
 }
 
@@ -66,22 +69,25 @@ GRPCNetworkLog *networkLog;
 
 - (void)didCloseWithTrailingMetadata:(NSDictionary *)trailingMetadata error:(NSError *)error {
     networkLog.duration = ([[NSDate date] timeIntervalSince1970] - networkLog.startTime) * 1000000;
+    [networkLog.responseHeaders addEntriesFromDictionary:[trailingMetadata copy]];
     if (error == nil) {
         networkLog.statusCode = 0;
+        if (networkLog.responseHeaders[@"content-type"] == nil) {
+            [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
+        }
     } else {
+        networkLog.statusCode = error.code;
         if (networkLog.isServerSideError) {
-            networkLog.statusCode = error.code;
             networkLog.serverErrorMessage = error.description;
+            if (networkLog.responseHeaders[@"content-type"] == nil) {
+                [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
+            }
         } else {
             networkLog.errorCode = error.code;
             networkLog.errorDomain = error.description;
         }
     }
-    
-    [networkLog.responseHeaders addEntriesFromDictionary:[trailingMetadata copy]];
-    if (networkLog.responseHeaders[@"content-type"] == nil) {
-        [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
-    }
+
     networkLog.contentType = networkLog.responseHeaders[@"content-type"];
 
     [IBGNetworkLogger addGrpcNetworkLogWithUrl:networkLog.url

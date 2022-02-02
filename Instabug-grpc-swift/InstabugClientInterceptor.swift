@@ -39,6 +39,11 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             for header in headers {
                 networkLog.requestHeaders[header.name] = header.value
             }
+            
+            if networkLog.requestHeaders["content-type"] == nil {
+                networkLog.requestHeaders["content-type"] = "application/grpc"
+            }
+
         case let .message(request, _):
             if let data = request.gRPCRequestData {
                 networkLog.requestBody = String(data: data, encoding: .utf8)
@@ -60,16 +65,26 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             for header in headers {
                 networkLog.responseHeaders[header.name] = header.value
             }
-            networkLog.contentType = headers.first(where: {$0.name == "content-type"})?.value
-            
+            if networkLog.responseHeaders["content-type"] == nil {
+                networkLog.responseHeaders["content-type"] = "application/grpc"
+            }
+
         case let .message(response):
             if let data = response.gRPCRequestData {
                 networkLog.responseBody = String(data: data, encoding: .utf8)
                 networkLog.responseBodySize = Int64(data.count)
             }
+
         case let .end(status, trailers):
+            networkLog.responseCode = Int32(status.code.rawValue)
             if !trailers.isEmpty {
-                networkLog.responseCode = Int32(status.code.rawValue)
+                for header in trailers {
+                    networkLog.responseHeaders[header.name] = header.value
+                }
+        
+                if networkLog.responseHeaders["content-type"] == nil {
+                    networkLog.responseHeaders["content-type"] = "application/grpc"
+                }
                 if status.code.rawValue != 0 {
                     networkLog.serverErrorMessage = status.description
                 }
@@ -96,10 +111,11 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
     }
 
     func addGrpcNetworkLog() {
-        if networkLog.responseHeaders["content-type"] == nil {
-            networkLog.responseHeaders["content-type"] = "application/grpc"
+        if networkLog.responseHeaders["content-type"] != nil {
+            networkLog.requestHeaders["content-type"] = networkLog.responseHeaders["content-type"]
         }
-        networkLog.contentType = networkLog.responseHeaders["content-type"];
+        networkLog.contentType = networkLog.responseHeaders["content-type"]
+        
         NetworkLogger.addGrpcNetworkLog(
             withUrl: networkLog.url,
             requestBody: networkLog.requestBody,
