@@ -25,8 +25,11 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         context: ClientInterceptorContext<Request, Response>
     ) {
         let authority = getHost(context: context)
-        let serviceName = context.path.components(separatedBy: "/")[1]
-        
+        var serviceName: String = ""
+        if context.path.components(separatedBy: "/").count > 1 {
+            serviceName = context.path.components(separatedBy: "/")[1]
+        }
+
         var portStr: String = ""
         if let port = networkLog.port {
             portStr = ":\(port)"
