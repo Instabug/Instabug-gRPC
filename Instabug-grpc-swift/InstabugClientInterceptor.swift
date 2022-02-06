@@ -39,6 +39,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         switch part {
         case let .metadata(headers):
             networkLog.startTime = Date().timeIntervalSince1970
+            NetworkLogger.grpcRequestDidStart(withIdentifier: networkLog.identifier)
             for header in headers {
                 networkLog.requestHeaders[header.name] = header.value
             }
@@ -134,7 +135,8 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             errorCode: networkLog.errorCode ?? 0,
             duration: networkLog.duration ?? 0,
             gRPCMethod: networkLog.gRPCMethod,
-            serverErrorMessage:networkLog.serverErrorMessage)
+            serverErrorMessage:networkLog.serverErrorMessage,
+            identifier: networkLog.identifier)
     }
     
     func getHost(context: ClientInterceptorContext<Request, Response>) -> String {
@@ -177,6 +179,7 @@ struct GRPCNetworkLog {
     var duration: Int64?
     var gRPCMethod: String?
     var serverErrorMessage: String?
+    var identifier = UUID().uuidString
 }
 
 public protocol InstabugGRPCDataProtocol {

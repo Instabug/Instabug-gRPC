@@ -22,6 +22,7 @@
 @property NSInteger duration;
 @property NSString *gRPCMethod;
 @property NSString *serverErrorMessage;
+@property NSString *identifier;
 @property double startTime;
 @property BOOL isServerSideError;
 @end
@@ -40,6 +41,8 @@ GRPCNetworkLog *networkLog;
     networkLog.url = [NSString stringWithFormat:@"grpc://%@/%@",[requestOptions host], [requestOptions path].pathComponents[1]];
     networkLog.gRPCMethod = [requestOptions path].pathComponents[2];
     networkLog.startTime = [[NSDate date] timeIntervalSince1970];
+    networkLog.identifier = [[NSUUID alloc] UUIDString];
+    [IBGNetworkLogger grpcRequestDidStartWithIdentifier:networkLog.identifier];
     networkLog.requestHeaders = [[NSMutableDictionary alloc] initWithDictionary:[callOptions.initialMetadata copy]];
     if (networkLog.requestHeaders[@"content-type"] == nil) {
         [networkLog.requestHeaders setObject:@"application/grpc" forKey:@"content-type"];
@@ -104,7 +107,8 @@ GRPCNetworkLog *networkLog;
                                      errorCode:(int)networkLog.errorCode
                                       duration:networkLog.duration
                                     gRPCMethod:networkLog.gRPCMethod
-                            serverErrorMessage:networkLog.serverErrorMessage];
+                            serverErrorMessage:networkLog.serverErrorMessage
+                                    identifier:networkLog.identifier];
     [super didCloseWithTrailingMetadata:trailingMetadata error:error];
 }
 
