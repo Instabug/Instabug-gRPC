@@ -11,6 +11,7 @@ Add pod `Instabug_gRPC_Swift` or pod `'Instabug-gRPC-ObjC'` to your `podfile`
 ## Requirements
 
 iOS version >= 10.0
+Instabug version >= 10.11.8
 
 ## Swift Example
 1. Make sure you import our destination first: `import Instabug_gRPC_Swift`
