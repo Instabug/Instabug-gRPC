@@ -7,7 +7,7 @@
 
 #import <Foundation/Foundation.h>
 #import <GRPCClient/GRPCTransport.h>
-#import "Instabug.h"
+#import <Instabug/Instabug.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
