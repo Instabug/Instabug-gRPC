@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "Instabug-gRPC-ObjC"
-  s.version          = "0.0.1"
+  s.version          = "0.1.0"
   s.summary          = "Capturing gRPC requests for iOS"
   s.homepage         = "http://instabug.com"
   s.license          = {
@@ -25,6 +25,6 @@ Pod::Spec.new do |s|
 
   s.source_files = 'Instabug-grpc-objc/**/*.{h,m,swift}'
   s.requires_arc     = true
-  s.dependency 'Instabug', '>= 10.11.6'
+  s.dependency 'Instabug', '>= 10.11.8'
   s.dependency 'gRPC'
 end
