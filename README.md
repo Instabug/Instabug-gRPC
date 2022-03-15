@@ -17,8 +17,9 @@ Instabug version >= 10.11.8
 1. Make sure you import our destination first: `import Instabug_gRPC_Swift`
 2. Create Interceptor factory that confirms to the interceptor factory protocol that you have in your .grpc file
 3. Make sure to return new instance of our Interceptor `InstabugClientInterceptor()` in the methods that you need us to log
-4. Then conform on `InstabugGRPCDataProtocol` for request and response models which have data variable `{ get }` and convert your model to `Data` and return that `Data` in that variable for both request and response
-5. You can pass the port optional in `InstabugClientInterceptor` as `InstabugClientInterceptor(port: <#T##Int?#>)` to see it on the dashboard
+4. Conform on `InstabugGRPCDataProtocol` for request and response models which requires that you expose your models as `Data`
+5. You can convert your model to `Data` by conforming on `Encodable`
+6. You can pass the port optional in `InstabugClientInterceptor` as `InstabugClientInterceptor(port: <#T##Int?#>)` to see it on the dashboard
  
 ### Sample code 
 
@@ -45,24 +46,28 @@ class ExampleClientInterceptorFactory: Echo_EchoClientInterceptorFactoryProtocol
   }
 }
 
-extension GrpcAutomation_ServerErrorRequest: InstabugGRPCDataProtocol {
-    public var gRPCRequestData: Data? {
-        return message.data(using: .utf8)
+extension GrpcAutomation_RepeaterRequest: InstabugGRPCDataProtocol, Encodable {
+    enum CodingKeys: String, CodingKey {
+        case message, unknownFields
     }
-}
-
-extension GrpcAutomation_ServerErrorReply: InstabugGRPCDataProtocol {
-    public var gRPCRequestData: Data? {
-        return message.data(using: .utf8)
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(message, forKey: .message)
     }
-}
+    
+    public var gRPCRequestData: Data? {
+        let jsonEncoder = JSONEncoder()
+        let data = try? jsonEncoder.encode(self)
+        return data
+    }
 ```
 
 And finally pass `ExampleClientInterceptorFactory()` to your client like this
 
+
 ```
 let client = Echo_EchoClient(channel: channel, interceptors: ExampleClientInterceptorFactory())
-
 ```
 
 ## ObjectiveC Example
