@@ -18,7 +18,7 @@ Instabug version >= 10.11.8
 2. Create Interceptor factory that confirms to the interceptor factory protocol that you have in your .grpc file
 3. Make sure to return new instance of our Interceptor `InstabugClientInterceptor()` in the methods that you need us to log
 4. Conform on `InstabugGRPCDataProtocol` for request and response models which requires that you expose your models as `Data`
-5. You can convert your model to `Data` by conforming on `Encodable`
+5. You can convert your model to `Data` by conforming to `Encodable`
 6. You can pass the port optional in `InstabugClientInterceptor` as `InstabugClientInterceptor(port: <#T##Int?#>)` to see it on the dashboard
  
 ### Sample code 
