@@ -19,11 +19,11 @@
 @property NSString *contentType;
 @property NSString *errorDomain;
 @property NSInteger errorCode;
-@property NSInteger duration;
+@property NSTimeInterval duration;
 @property NSString *gRPCMethod;
 @property NSString *serverErrorMessage;
-@property double startTime;
-@property BOOL isServerSideError;
+@property NSTimeInterval startTime;
+@property BOOL receivedInitialMetadata;
 @end
 
 @implementation GRPCNetworkLog
