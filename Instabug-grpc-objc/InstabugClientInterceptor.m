@@ -35,16 +35,17 @@
 GRPCNetworkLog *networkLog;
 
 - (void)startWithRequestOptions:(GRPCRequestOptions *)requestOptions callOptions:(GRPCCallOptions *)callOptions {
+    GRPCCallOptions *updatedCallOptions = [self addExternalTraceHeaderWithCallOptions:callOptions];
     networkLog = [[GRPCNetworkLog alloc] init];
     
     networkLog.url = [NSString stringWithFormat:@"grpc://%@/%@",[requestOptions host], [requestOptions path].pathComponents[1]];
     networkLog.gRPCMethod = [requestOptions path].pathComponents[2];
     networkLog.startTime = [[NSDate date] timeIntervalSince1970];
-    networkLog.requestHeaders = [[NSMutableDictionary alloc] initWithDictionary:[callOptions.initialMetadata copy]];
+    networkLog.requestHeaders = [updatedCallOptions mutableCopy];
     if (networkLog.requestHeaders[@"content-type"] == nil) {
         [networkLog.requestHeaders setObject:@"application/grpc" forKey:@"content-type"];
     }
-    [super startWithRequestOptions:requestOptions callOptions:callOptions];
+    [super startWithRequestOptions:requestOptions callOptions:updatedCallOptions];
 }
 
 - (void)writeData:(id)data {
@@ -60,16 +61,14 @@ GRPCNetworkLog *networkLog;
 }
 
 - (void)didReceiveInitialMetadata:(NSDictionary *)initialMetadata {
-    networkLog.responseHeaders = [NSMutableDictionary dictionary];
-    [networkLog.responseHeaders addEntriesFromDictionary:[initialMetadata copy]];
-
-    networkLog.isServerSideError = YES;
+    networkLog.responseHeaders = [initialMetadata mutableCopy];
+    networkLog.receivedInitialMetadata = YES;
     [super didReceiveInitialMetadata:initialMetadata];
 }
 
 - (void)didCloseWithTrailingMetadata:(NSDictionary *)trailingMetadata error:(NSError *)error {
-    networkLog.duration = ([[NSDate date] timeIntervalSince1970] - networkLog.startTime) * 1000000;
-    [networkLog.responseHeaders addEntriesFromDictionary:[trailingMetadata copy]];
+    networkLog.duration = [[NSDate date] timeIntervalSince1970] - networkLog.startTime;
+    [networkLog.responseHeaders addEntriesFromDictionary:trailingMetadata];
     if (error == nil) {
         networkLog.statusCode = 0;
         if (networkLog.responseHeaders[@"content-type"] == nil) {
@@ -77,7 +76,7 @@ GRPCNetworkLog *networkLog;
         }
     } else {
         networkLog.statusCode = error.code;
-        if (networkLog.isServerSideError) {
+        if (networkLog.receivedInitialMetadata) {
             networkLog.serverErrorMessage = error.description;
             if (networkLog.responseHeaders[@"content-type"] == nil) {
                 [networkLog.responseHeaders setObject:@"application/grpc" forKey:@"content-type"];
@@ -99,13 +98,45 @@ GRPCNetworkLog *networkLog;
                                 requestHeaders:networkLog.requestHeaders
                                responseHeaders:networkLog.responseHeaders
                                    contentType:networkLog.contentType
-                                     startTime:(networkLog.startTime * 1000000)
+                                     startTime:networkLog.startTime * USEC_PER_SEC
                                    errorDomain:networkLog.errorDomain
                                      errorCode:(int)networkLog.errorCode
-                                      duration:networkLog.duration
+                                      duration:networkLog.duration * USEC_PER_SEC
                                     gRPCMethod:networkLog.gRPCMethod
                             serverErrorMessage:networkLog.serverErrorMessage];
+    
     [super didCloseWithTrailingMetadata:trailingMetadata error:error];
+}
+
+// MARK: - Helpers
+
+- (GRPCCallOptions *)addExternalTraceHeaderWithCallOptions:(GRPCCallOptions *)originalCallOptions {
+    NSDictionary *externalTraceIDHeader = [IBGNetworkLogger newExternalTraceIDHeader];
+    if (externalTraceIDHeader == nil) {
+        return originalCallOptions;
+    }
+    
+    GRPCMetadataDictionary *updatedInitialMetadata = [self addEntriesToMetadata:originalCallOptions.initialMetadata
+                                                                 fromDictionary:externalTraceIDHeader];
+    
+    GRPCMutableCallOptions *mutableCallOptions = [originalCallOptions mutableCopy];
+    mutableCallOptions.initialMetadata = updatedInitialMetadata;
+    
+    return [mutableCallOptions copy];
+}
+
+- (GRPCMetadataDictionary *)addEntriesToMetadata:(GRPCMetadataDictionary * _Nullable)originalInitialMetadata
+                                  fromDictionary:(NSDictionary *)dictionary {
+    
+    NSMutableDictionary *mutableInitialMetadata;
+    if (originalInitialMetadata != nil) {
+        mutableInitialMetadata = [originalInitialMetadata mutableCopy];
+    } else {
+        mutableInitialMetadata = [[NSMutableDictionary alloc] init];
+    }
+    
+    [mutableInitialMetadata addEntriesFromDictionary:dictionary];
+    return [mutableInitialMetadata copy];
 }
 
 @end
