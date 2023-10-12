@@ -48,14 +48,14 @@ GRPCNetworkLog *networkLog;
 }
 
 - (void)writeData:(id)data {
-    networkLog.requestBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    networkLog.requestSize = [data length];
+    //networkLog.requestBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    networkLog.requestSize += [data length];
     [super writeData:data];
 }
 
 - (void)didReceiveData:(id)data {
-    networkLog.responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    networkLog.responseBodySize = [data length];
+    //networkLog.responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    networkLog.responseBodySize += [data length];
     [super didReceiveData:data];
 }
 
