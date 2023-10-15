@@ -8,6 +8,7 @@
 import Foundation
 import GRPC
 import NIO
+import NIOHPACK
 import Instabug
 
 open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response: InstabugGRPCDataProtocol>: ClientInterceptor<Request, Response> {
@@ -36,7 +37,17 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         }
         networkLog.url = "grpc://\(authority)\(portStr)/\(serviceName)"
         networkLog.gRPCMethod = context.path.components(separatedBy: "/").last
+        
+        let partToSend: GRPCClientRequestPart<Request>
         switch part {
+        case let .metadata(headers):
+            let updatedHeaders = addingExternalTraceIDHeader(to: headers)
+            partToSend = .metadata(updatedHeaders)
+        default:
+            partToSend = part
+        }
+        
+        switch partToSend {
         case let .metadata(headers):
             networkLog.startTime = Date().timeIntervalSince1970
             for header in headers {
@@ -56,7 +67,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         }
         
         // Forward the request part to the next interceptor.
-        context.send(part, promise: promise)
+        context.send(partToSend, promise: promise)
     }
 
     open override func receive(
@@ -158,6 +169,19 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
 
         return authority
     }
+    
+    private func addingExternalTraceIDHeader(to metadataHeaders: HPACKHeaders) -> HPACKHeaders {
+        let externalTraceIDHeader = NetworkLogger.newExternalTraceIDHeader()
+        guard let externalTraceIDHeader = externalTraceIDHeader else {
+            return metadataHeaders
+        }
+        var updatedHeaders = metadataHeaders
+        for aHeader in externalTraceIDHeader {
+            updatedHeaders.add(name: aHeader.key, value: aHeader.value)
+        }
+        return updatedHeaders
+    }
+    
 }
 
 struct GRPCNetworkLog {
