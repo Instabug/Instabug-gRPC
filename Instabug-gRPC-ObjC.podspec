@@ -25,6 +25,6 @@ Pod::Spec.new do |s|
 
   s.source_files = 'Instabug-grpc-objc/**/*.{h,m,swift}'
   s.requires_arc     = true
-  s.dependency 'Instabug', '>= 12.3.0'
+  s.dependency 'Instabug', '>= 12.4.0'
   s.dependency 'gRPC'
 end
