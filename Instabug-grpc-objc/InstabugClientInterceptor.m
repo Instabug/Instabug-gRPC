@@ -9,9 +9,7 @@
 
 @interface GRPCNetworkLog : NSObject
 @property NSString *url;
-@property NSString *requestBody;
-@property NSInteger requestSize;
-@property NSString *responseBody;
+@property NSInteger requestBodySize;
 @property NSInteger responseBodySize;
 @property NSInteger statusCode;
 @property NSMutableDictionary<NSString *, NSString *> *requestHeaders;
@@ -49,13 +47,11 @@ GRPCNetworkLog *networkLog;
 }
 
 - (void)writeData:(id)data {
-    //networkLog.requestBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    networkLog.requestSize += [data length];
+    networkLog.requestBodySize += [data length];
     [super writeData:data];
 }
 
 - (void)didReceiveData:(id)data {
-    //networkLog.responseBody = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     networkLog.responseBodySize += [data length];
     [super didReceiveData:data];
 }
@@ -90,17 +86,15 @@ GRPCNetworkLog *networkLog;
     networkLog.contentType = networkLog.responseHeaders[@"content-type"];
 
     [IBGNetworkLogger addGrpcNetworkLogWithUrl:networkLog.url
-                                   requestBody:networkLog.requestBody
-                               requestBodySize:networkLog.requestSize
-                                  responseBody:networkLog.responseBody
+                               requestBodySize:networkLog.requestBodySize
                               responseBodySize:networkLog.responseBodySize
-                                  responseCode:(int)networkLog.statusCode
+                                  responseCode:networkLog.statusCode
                                 requestHeaders:networkLog.requestHeaders
                                responseHeaders:networkLog.responseHeaders
                                    contentType:networkLog.contentType
                                      startTime:networkLog.startTime * USEC_PER_SEC
                                    errorDomain:networkLog.errorDomain
-                                     errorCode:(int)networkLog.errorCode
+                                     errorCode:networkLog.errorCode
                                       duration:networkLog.duration * USEC_PER_SEC
                                     gRPCMethod:networkLog.gRPCMethod
                             serverErrorMessage:networkLog.serverErrorMessage];
