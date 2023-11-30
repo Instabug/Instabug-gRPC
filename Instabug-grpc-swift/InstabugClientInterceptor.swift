@@ -60,7 +60,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
 
         case let .message(request, _):
             if let dataCount = request.gRPCRequestData?.count {
-                networkLog.requestBodySize = dataCount
+                networkLog.requestBodySize += dataCount
             }
         case .end: break
         }
@@ -84,7 +84,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
 
         case let .message(response):
             if let dataCount = response.gRPCRequestData?.count {
-                networkLog.responseBodySize = dataCount
+                networkLog.responseBodySize += dataCount
             }
 
         case let .end(status, trailers):
@@ -130,8 +130,8 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         
         NetworkLogger.addGrpcNetworkLog(
             withUrl: networkLog.url,
-            requestBodySize: networkLog.requestBodySize ?? 0,
-            responseBodySize: networkLog.responseBodySize ?? 0,
+            requestBodySize: networkLog.requestBodySize,
+            responseBodySize: networkLog.responseBodySize,
             responseCode: networkLog.responseCode ?? 0,
             requestHeaders: networkLog.requestHeaders,
             responseHeaders: networkLog.responseHeaders,
@@ -183,8 +183,8 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
 struct GRPCNetworkLog {
     var url: String?
     var port: Int?
-    var requestBodySize: Int?
-    var responseBodySize: Int?
+    var requestBodySize = 0
+    var responseBodySize = 0
     var responseCode: Int?
     var requestHeaders: [String: String] = [:]
     var responseHeaders: [String: String] = [:]
