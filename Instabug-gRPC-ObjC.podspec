@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "Instabug-gRPC-ObjC"
-  s.version          = "0.2.0"
+  s.version          = "0.2.1"
   s.summary          = "Capturing gRPC requests for iOS"
   s.homepage         = "http://instabug.com"
   s.license          = {
@@ -20,7 +20,7 @@ Pod::Spec.new do |s|
       LICENSE
     }
   s.author           = { "Instabug" => "contactus@instabug.com" }
-  s.platform         = :ios, '10.0'
+  s.platform         = :ios, '11.0'
   s.source           = { :git => "https://github.com/Instabug/Instabug-gRPC.git", :tag => "#{s.version}" }
 
   s.source_files = 'Instabug-grpc-objc/**/*.{h,m,swift}'
