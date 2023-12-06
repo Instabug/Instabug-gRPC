@@ -8,6 +8,7 @@
 import Foundation
 import GRPC
 import NIO
+import NIOHPACK
 import Instabug
 
 open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response: InstabugGRPCDataProtocol>: ClientInterceptor<Request, Response> {
@@ -36,7 +37,17 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         }
         networkLog.url = "grpc://\(authority)\(portStr)/\(serviceName)"
         networkLog.gRPCMethod = context.path.components(separatedBy: "/").last
+        
+        let partToSend: GRPCClientRequestPart<Request>
         switch part {
+        case let .metadata(headers):
+            let updatedHeaders = addingExternalTraceIDHeader(to: headers)
+            partToSend = .metadata(updatedHeaders)
+        default:
+            partToSend = part
+        }
+        
+        switch partToSend {
         case let .metadata(headers):
             networkLog.startTime = Date().timeIntervalSince1970
             for header in headers {
@@ -48,15 +59,14 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             }
 
         case let .message(request, _):
-            if let data = request.gRPCRequestData {
-                networkLog.requestBody = String(data: data, encoding: .utf8)
-                networkLog.requestBodySize = Int64(data.count)
+            if let dataCount = request.gRPCRequestData?.count {
+                networkLog.requestBodySize += dataCount
             }
         case .end: break
         }
         
         // Forward the request part to the next interceptor.
-        context.send(part, promise: promise)
+        context.send(partToSend, promise: promise)
     }
 
     open override func receive(
@@ -73,13 +83,12 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
             }
 
         case let .message(response):
-            if let data = response.gRPCRequestData {
-                networkLog.responseBody = String(data: data, encoding: .utf8)
-                networkLog.responseBodySize = Int64(data.count)
+            if let dataCount = response.gRPCRequestData?.count {
+                networkLog.responseBodySize += dataCount
             }
 
         case let .end(status, trailers):
-            networkLog.responseCode = Int32(status.code.rawValue)
+            networkLog.responseCode = status.code.rawValue
             if !trailers.isEmpty {
                 for header in trailers {
                     networkLog.responseHeaders[header.name] = header.value
@@ -92,11 +101,11 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
                     networkLog.serverErrorMessage = status.description
                 }
             } else {
-                networkLog.errorCode = Int32(status.code.rawValue)
+                networkLog.errorCode = status.code.rawValue
                 networkLog.errorDomain = status.description
             }
             if let startTime = networkLog.startTime {
-                networkLog.duration = Int64((Date().timeIntervalSince1970 - startTime) * 1000000)
+                networkLog.duration = Date().timeIntervalSince1970 - startTime
             }
             addGrpcNetworkLog()
         }
@@ -108,7 +117,7 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
     open override func errorCaught(_ error: Error, context: ClientInterceptorContext<Request, Response>) {
         networkLog.responseCode = nil
         networkLog.serverErrorMessage = nil
-        networkLog.errorCode = Int32((error as NSError).code)
+        networkLog.errorCode = (error as NSError).code
         networkLog.errorDomain = (error as NSError).domain
         addGrpcNetworkLog()
     }
@@ -121,18 +130,16 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
         
         NetworkLogger.addGrpcNetworkLog(
             withUrl: networkLog.url,
-            requestBody: networkLog.requestBody,
-            requestBodySize: networkLog.requestBodySize ?? 0,
-            responseBody: networkLog.responseBody,
-            responseBodySize: networkLog.responseBodySize ?? 0,
+            requestBodySize: networkLog.requestBodySize,
+            responseBodySize: networkLog.responseBodySize,
             responseCode: networkLog.responseCode ?? 0,
             requestHeaders: networkLog.requestHeaders,
             responseHeaders: networkLog.responseHeaders,
             contentType: networkLog.contentType,
-            startTime: Int64((networkLog.startTime ?? 0) * 1000000),
+            startTime: (networkLog.startTime ?? 0) * 1_000_000,
             errorDomain: networkLog.errorDomain,
             errorCode: networkLog.errorCode ?? 0,
-            duration: networkLog.duration ?? 0,
+            duration: (networkLog.duration ?? 0) * 1_000_000,
             gRPCMethod: networkLog.gRPCMethod,
             serverErrorMessage:networkLog.serverErrorMessage)
     }
@@ -158,23 +165,34 @@ open class InstabugClientInterceptor<Request: InstabugGRPCDataProtocol, Response
 
         return authority
     }
+    
+    private func addingExternalTraceIDHeader(to metadataHeaders: HPACKHeaders) -> HPACKHeaders {
+        let externalTraceIDHeader = NetworkLogger.newExternalTraceIDHeader()
+        guard let externalTraceIDHeader = externalTraceIDHeader else {
+            return metadataHeaders
+        }
+        var updatedHeaders = metadataHeaders
+        for aHeader in externalTraceIDHeader {
+            updatedHeaders.add(name: aHeader.key, value: aHeader.value)
+        }
+        return updatedHeaders
+    }
+    
 }
 
 struct GRPCNetworkLog {
     var url: String?
     var port: Int?
-    var requestBody: String?
-    var requestBodySize: Int64?
-    var responseBody: String?
-    var responseBodySize: Int64?
-    var responseCode: Int32?
+    var requestBodySize = 0
+    var responseBodySize = 0
+    var responseCode: Int?
     var requestHeaders: [String: String] = [:]
     var responseHeaders: [String: String] = [:]
     var contentType: String?
     var errorDomain: String?
-    var errorCode: Int32?
-    var startTime: Double?
-    var duration: Int64?
+    var errorCode: Int?
+    var startTime: TimeInterval?
+    var duration: TimeInterval?
     var gRPCMethod: String?
     var serverErrorMessage: String?
 }
