@@ -6,7 +6,7 @@ There's `Instabug_gRPC_Swift` which is a Swift framework and intended to be used
 
 ## Installation
 
-Add pod `Instabug_gRPC_Swift` or pod `'Instabug-gRPC-ObjC'` to your `podfile`
+Add pod `Instabug-gRPC-Swift` or pod `'Instabug-gRPC-ObjC'` to your `podfile`
 
 ## Requirements
 
@@ -19,7 +19,7 @@ Instabug version >= 10.11.8
 3. Make sure to return new instance of our Interceptor `InstabugClientInterceptor()` in the methods that you need us to log
 4. Conform on `InstabugGRPCDataProtocol` for request and response models which requires that you expose your models as `Data`
 5. You can convert your model to `Data` by conforming to `Encodable`
-6. You can pass the port optional in `InstabugClientInterceptor` as `InstabugClientInterceptor(port: <#T##Int?#>)` to see it on the dashboard
+6. You can pass the port optional in `InstabugClientInterceptor` as `InstabugClientInterceptor(port:)` to see it on the dashboard
  
 ### Sample code 
 
